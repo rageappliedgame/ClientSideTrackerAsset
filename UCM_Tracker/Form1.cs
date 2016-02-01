@@ -2,7 +2,6 @@
 {
     using System;
     using System.Diagnostics;
-    using System.Drawing;
     using System.IO;
     using System.Windows.Forms;
 
@@ -29,10 +28,11 @@
             AssetManager.Instance.Bridge = new Bridge();
 
             (TrackerAsset.Instance.Settings as TrackerAssetSettings).TraceFormat = TrackerAsset.TraceFormats.xapi;
-            (TrackerAsset.Instance.Settings as TrackerAssetSettings).Host = "145.20.132.23";
-            (TrackerAsset.Instance.Settings as TrackerAssetSettings).TrackingCode = "565d6da5b4c1dc4200bd50dagguva4nbikqsq0k9";
 
-            // Setup
+            // Setup defaults to xApi / net (UCM tracker).
+            // 
+
+            // Setup for local storage.
             //(TrackerAsset.Instance.Settings as TrackerAssetSettings).StorageType = TrackerAsset.StorageTypes.local;
             //(TrackerAsset.Instance.Settings as TrackerAssetSettings).TraceFormat = TrackerAsset.TraceFormats.json;
 
@@ -48,6 +48,7 @@
             }
 
             // Catch debugging output.
+            // 
             Debug.Listeners.Add(textWriter);
         }
 

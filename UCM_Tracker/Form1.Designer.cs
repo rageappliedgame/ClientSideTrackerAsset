@@ -144,7 +144,6 @@
             this.userName.Name = "userName";
             this.userName.Size = new System.Drawing.Size(161, 20);
             this.userName.TabIndex = 7;
-            this.userName.Text = "veg_s";
             // 
             // password
             // 
@@ -194,7 +193,6 @@
             this.trackingCode.Name = "trackingCode";
             this.trackingCode.Size = new System.Drawing.Size(303, 20);
             this.trackingCode.TabIndex = 11;
-            this.trackingCode.Text = "565d6da5b4c1dc4200bd50dagguva4nbikqsq0k9";
             // 
             // groupBox3
             // 
@@ -282,7 +280,6 @@
             this.trackerServer.Name = "trackerServer";
             this.trackerServer.Size = new System.Drawing.Size(209, 20);
             this.trackerServer.TabIndex = 0;
-            this.trackerServer.Text = "145.20.132.23";
             this.trackerServer.TextChanged += new System.EventHandler(this.trackerServer_TextChanged);
             // 
             // button6

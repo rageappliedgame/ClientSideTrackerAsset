@@ -15,7 +15,7 @@ namespace UCM_Tracker
     /// <summary>
     /// A bridge.
     /// </summary>
-    public class Bridge : IBridge, IDataStorage, IWebServiceRequest, ILog
+    public class Bridge : IBridge, IDataStorage, IWebServiceRequest, ILog, IWebServiceRequest2
     {
         readonly String StorageDir = String.Format(@".{0}DataStorage", Path.DirectorySeparatorChar);
 
@@ -271,12 +271,169 @@ namespace UCM_Tracker
                 {
                     Debug.WriteLine("");
                 }
-                else {
+                else
+                {
                     Debug.WriteLine(String.Format("{0}: {1}", severity, msg));
                 }
             }
         }
 
         #endregion ILog Members
+
+        #region IWebServiceRequest2 Members
+
+        // See http://stackoverflow.com/questions/12224602/a-method-for-making-http-requests-on-unity-ios
+        // for persistence.
+        // See http://18and5.blogspot.com.es/2014/05/mono-unity3d-c-https-httpwebrequest.html
+
+#if ASYNC
+        public void WebServiceRequest(RequestSetttings requestSettings, out RequestResponse requestReponse)
+        {
+            // Wrap the actual method in a Task. Neccesary because we cannot:
+            // 1) Make this method async (out is not allowed) 
+            // 2) Return a Task<RequestResponse> as it breaks the interface (only void does not break it).
+            //
+            Task<RequestResponse> taskName = Task.Factory.StartNew<RequestResponse>(() =>
+            {
+                return WebServiceRequestAsync(requestSettings).Result;
+            });
+
+            requestReponse = taskName.Result;
+        }
+
+        /// <summary>
+        /// Web service request.
+        /// </summary>
+        ///
+        /// <param name="requestSettings"> Options for controlling the operation. </param>
+        ///
+        /// <returns>
+        /// A RequestResponse.
+        /// </returns>
+        private async Task<RequestResponse> WebServiceRequestAsync(RequestSetttings requestSettings)
+#else
+        /// <summary>
+        /// Web service request.
+        /// </summary>
+        ///
+        /// <param name="requestSettings">  Options for controlling the operation. </param>
+        /// <param name="requestResponse"> The request response. </param>
+        public void WebServiceRequest(RequestSetttings requestSettings, out RequestResponse requestResponse)
+        {
+            requestResponse = WebServiceRequest(requestSettings);
+        }
+
+        /// <summary>
+        /// Web service request.
+        /// </summary>
+        ///
+        /// <param name="requestSettings">  Options for controlling the operation. </param>
+        ///
+        /// <returns>
+        /// A RequestResponse.
+        /// </returns>
+        private RequestResponse WebServiceRequest(RequestSetttings requestSettings)
+#endif
+        {
+            RequestResponse result = new RequestResponse(requestSettings);
+
+            try
+            {
+                //! Might throw a silent System.IOException on .NET 3.5 (sync).
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestSettings.uri);
+
+                request.Method = requestSettings.method;
+
+                // TODO Cookies
+
+                // Both Accept and Content-Type are not allowed as Headers in a HttpWebRequest.
+                // They need to be assigned to a matching property.
+
+                if (requestSettings.requestHeaders.ContainsKey("Accept"))
+                {
+                    request.Accept = requestSettings.requestHeaders["Accept"];
+                }
+
+                if (!String.IsNullOrEmpty(requestSettings.body))
+                {
+                    byte[] data = Encoding.UTF8.GetBytes(requestSettings.body);
+
+                    if (requestSettings.requestHeaders.ContainsKey("Content-Type"))
+                    {
+                        request.ContentType = requestSettings.requestHeaders["Content-Type"];
+                    }
+
+                    foreach (KeyValuePair<string, string> kvp in requestSettings.requestHeaders)
+                    {
+                        if (kvp.Key.Equals("Accept") || kvp.Key.Equals("Content-Type"))
+                        {
+                            continue;
+                        }
+                        request.Headers.Add(kvp.Key, kvp.Value);
+                    }
+
+                    request.ContentLength = data.Length;
+
+                    // See https://msdn.microsoft.com/en-us/library/system.net.servicepoint.expect100continue(v=vs.110).aspx
+                    // A2 currently does not support this 100-Continue response for POST requets.
+                    request.ServicePoint.Expect100Continue = false;
+
+#if ASYNC
+                    Stream stream = await request.GetRequestStreamAsync();
+                    await stream.WriteAsync(data, 0, data.Length);
+                    stream.Close();
+#else
+                    Stream stream = request.GetRequestStream();
+                    stream.Write(data, 0, data.Length);
+                    stream.Close();
+#endif
+                }
+                else
+                {
+                    foreach (KeyValuePair<string, string> kvp in requestSettings.requestHeaders)
+                    {
+                        if (kvp.Key.Equals("Accept") || kvp.Key.Equals("Content-Type"))
+                        {
+                            continue;
+                        }
+                        request.Headers.Add(kvp.Key, kvp.Value);
+                    }
+                }
+
+#if ASYNC
+                WebResponse response = await request.GetResponseAsync();
+#else
+                WebResponse response = request.GetResponse();
+#endif
+                if (response.Headers.HasKeys())
+                {
+                    foreach (string key in response.Headers.AllKeys)
+                    {
+                        result.responseHeaders.Add(key, response.Headers.Get(key));
+                    }
+                }
+
+                result.responseCode = (int)(response as HttpWebResponse).StatusCode;
+
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+#if ASYNC
+                    result.body = await reader.ReadToEndAsync();
+#else
+                    result.body = reader.ReadToEnd();
+#endif
+                }
+            }
+            catch (Exception e)
+            {
+                result.responsMessage = e.Message;
+
+                // Log(Severity.Error, String.Format("{0} - {1}", e.GetType().Name, e.Message));
+            }
+
+            return result;
+        }
+
+        #endregion IWebServiceRequest2 Members
     }
 }

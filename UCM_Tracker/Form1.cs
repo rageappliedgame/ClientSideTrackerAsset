@@ -78,6 +78,8 @@
         {
             // To be used after button1 (user-name/password login).
             TrackerAsset.Instance.Start(trackingCode.Text);
+
+            token.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).UserToken;
         }
 
         /// <summary>
@@ -119,6 +121,8 @@
         {
             // First parameter is token obtained by login.
             TrackerAsset.Instance.Start(token.Text, trackingCode.Text);
+
+            token.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).UserToken;
         }
 
         /// <summary>
@@ -204,6 +208,45 @@
         private void trackerServer_TextChanged(object sender, EventArgs e)
         {
             (TrackerAsset.Instance.Settings as TrackerAssetSettings).Host = trackerServer.Text;
+        }
+
+        /// <summary>
+        /// Event handler. Called by button8 for click events.
+        /// </summary>
+        ///
+        /// <param name="sender"> Source of the event. </param>
+        /// <param name="e">      Event information. </param>
+        private void button8_Click(object sender, EventArgs e)
+        {
+            TrackerAsset.Instance.SaveSettings("settings.xml");
+        }
+
+        /// <summary>
+        /// Event handler. Called by button9 for click events.
+        /// </summary>
+        ///
+        /// <param name="sender"> Source of the event. </param>
+        /// <param name="e">      Event information. </param>
+        private void button9_Click(object sender, EventArgs e)
+        {
+            TrackerAsset.Instance.LoadSettings("settings.xml");
+
+            trackerServer.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).Host;
+            trackingCode.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).TrackingCode;
+            token.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).UserToken;
+        }
+
+        /// <summary>
+        /// Event handler. Called by Form1 for load events.
+        /// </summary>
+        ///
+        /// <param name="sender"> Source of the event. </param>
+        /// <param name="e">      Event information. </param>
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            trackerServer.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).Host;
+            trackingCode.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).TrackingCode;
+            token.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).UserToken;
         }
 
         #endregion Methods
@@ -292,19 +335,5 @@
         }
 
         #endregion Nested Types
-
-        private void button8_Click(object sender, EventArgs e)
-        {
-            TrackerAsset.Instance.SaveSettings("settings.xml");
-        }
-
-        private void button9_Click(object sender, EventArgs e)
-        {
-            TrackerAsset.Instance.LoadSettings("settings.xml");
-
-            trackerServer.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).Host;
-            trackingCode.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).TrackingCode;
-            token.Text = (TrackerAsset.Instance.Settings as TrackerAssetSettings).UserToken;
-        }
     }
 }

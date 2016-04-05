@@ -82,13 +82,30 @@
         /// </summary>
         private static String ObjectId = String.Empty;
 
-        //! Not correct in the long run but it will do for now.
-        // It should extract the whole actor object (but it does not match the {} brackets well enough).
-        //
+        /// <summary>
+        /// A Regex to extact the actor object from JSON.
+        /// </summary>
         private Regex jsonActor = new Regex(String.Format(ObjectRegEx, "actor"), RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace);
+
+        /// <summary>
+        /// A Regex to extact the authentication token value from JSON.
+        /// </summary>
         private Regex jsonAuthToken = new Regex(String.Format(TokenRegEx, "authToken"), RegexOptions.Singleline);
+
+        /// <summary>
+        /// A Regex to extact the objectId value from JSON.
+        /// </summary>
         private Regex jsonObjectId = new Regex(String.Format(TokenRegEx, "objectId"), RegexOptions.Singleline);
+
+        /// <summary>
+        /// A Regex to extact the token value from JSON.
+        /// </summary>
         private Regex jsonToken = new Regex(String.Format(TokenRegEx, "token"), RegexOptions.Singleline);
+
+        /// <summary>
+        /// A Regex to extact the status value from JSON.
+        /// </summary>
+        private Regex jsonHealth = new Regex(String.Format(TokenRegEx, "status"), RegexOptions.Singleline);
 
         /// <summary>
         /// The queue of TrackerEvents to Send.
@@ -250,6 +267,15 @@
         public Boolean Connected { get; private set; }
 
         /// <summary>
+        /// Gets the health.
+        /// </summary>
+        ///
+        /// <value>
+        /// The health.
+        /// </value>
+        public String Health { get; private set; }
+
+        /// <summary>
         /// Gets or sets options for controlling the operation.
         /// </summary>
         ///
@@ -287,7 +313,23 @@
         /// </returns>
         public Boolean CheckHealth()
         {
-            return IssueRequest("health", "GET");
+            RequestResponse response = IssueRequest2("health", "GET");
+
+            if (response.ResultAllowed)
+            {
+                if (jsonHealth.IsMatch(response.body))
+                {
+                    Health = jsonHealth.Match(response.body).Groups[1].Value;
+
+                    Log(Severity.Information, "Health Status={0}", Health);
+                }
+            }
+            else
+            {
+                Log(Severity.Error, "Request Error: {0}-{1}", response.responseCode, response.responsMessage);
+            }
+
+            return response.ResultAllowed;
         }
 
         /// <summary>
@@ -341,9 +383,9 @@
         /// <param name="msg"> The error message. </param>
         public void Error(string url, string msg)
         {
-            Log(Severity.Error, "{0} - [{1}]", msg, url);
+            //Log(Severity.Error, "{0} - [{1}]", msg, url);
 
-            Connected = false;
+            //Connected = false;
         }
 
         /// <summary>
@@ -357,7 +399,8 @@
 
                 // Start();
             }
-            else {
+            else
+            {
                 ProcessQueue();
             }
         }
@@ -381,9 +424,32 @@
             headers.Add("Content-Type", "application/json");
             headers.Add("Accept", "application/json");
 
-            return IssueRequest("login", "POST", headers,
+            RequestResponse response = IssueRequest2("login", "POST", headers,
                 String.Format("{{\r\n \"username\": \"{0}\",\r\n \"password\": \"{1}\"\r\n}}",
                 username, password));
+
+            if (response.ResultAllowed)
+            {
+                if (jsonToken.IsMatch(response.body))
+                {
+                    settings.UserToken = jsonToken.Match(response.body).Groups[1].Value;
+                    if (settings.UserToken.StartsWith("Bearer "))
+                    {
+                        settings.UserToken.Remove(0, "Bearer ".Length);
+                    }
+                    Log(Severity.Information, "Token= {0}", settings.UserToken);
+
+                    Connected = true;
+                }
+            }
+            else
+            {
+                Log(Severity.Error, "Request Error: {0}-{1}", response.responseCode, response.responsMessage);
+
+                Connected = false;
+            }
+
+            return Connected;
         }
 
         /// <summary>
@@ -437,10 +503,63 @@
                 case StorageTypes.net:
                     Dictionary<string, string> headers = new Dictionary<string, string>();
 
-                    //! Usertoken is picked-up by the Login() method call-back.
+                    //! The UserToken might get swapped for a better one during response
+                    //! processing. 
                     headers["Authorization"] = String.Format("Bearer {0}", settings.UserToken);
 
-                    IssueRequest(String.Format("proxy/gleaner/collector/start/{0}", settings.TrackingCode), "POST", headers, String.Empty);
+                    RequestResponse response = IssueRequest2(String.Format("proxy/gleaner/collector/start/{0}", settings.TrackingCode), "POST", headers, String.Empty);
+
+                    if (response.ResultAllowed)
+                    {
+                        Log(Severity.Information, "");
+
+                        // Extract AuthToken.
+                        //
+                        if (jsonAuthToken.IsMatch(response.body))
+                        {
+                            settings.UserToken = jsonAuthToken.Match(response.body).Groups[1].Value;
+                            if (settings.UserToken.StartsWith("Bearer "))
+                            {
+                                //! Update UserToken.
+                                settings.UserToken = settings.UserToken = settings.UserToken.Remove(0, "Bearer ".Length);
+                            }
+                            Log(Severity.Information, "AuthToken= {0}", settings.UserToken);
+
+                            Connected = true;
+                        }
+
+                        // Extract AuthToken.
+                        //
+                        if (jsonObjectId.IsMatch(response.body))
+                        {
+                            ObjectId = jsonObjectId.Match(response.body).Groups[1].Value;
+
+                            if (!ObjectId.EndsWith("/"))
+                            {
+                                ObjectId += "/";
+                            }
+
+                            Log(Severity.Information, "ObjectId= {0}", ObjectId);
+                        }
+
+                        // Extract Actor Json Object.
+                        //
+                        if (jsonActor.IsMatch(response.body))
+                        {
+                            ActorObject = jsonActor.Match(response.body).Groups[1].Value;
+
+                            Log(Severity.Information, "Actor= {0}", ActorObject);
+
+                            Active = true;
+                        }
+                    }
+                    else
+                    {
+                        Log(Severity.Error, "Request Error: {0}-{1}", response.responseCode, response.responsMessage);
+
+                        Active = false;
+                        Connected = false;
+                    }
 
                     break;
 
@@ -472,16 +591,16 @@
         /// <param name="body">    The body. </param>
         public void Success(string url, int code, Dictionary<string, string> headers, string body)
         {
-            Log(Severity.Verbose, "Success: {0} - [{1}]", code, url);
+            //Log(Severity.Verbose, "Success: {0} - [{1}]", code, url);
 
-            foreach (KeyValuePair<string, string> kvp in headers)
-            {
-                Log(Severity.Verbose, "{0}: {1}", kvp.Key, kvp.Value);
-            }
-            Log(Severity.Verbose, body);
-            Log(Severity.Verbose, "");
+            //foreach (KeyValuePair<string, string> kvp in headers)
+            //{
+            //    Log(Severity.Verbose, "{0}: {1}", kvp.Key, kvp.Value);
+            //}
+            //Log(Severity.Verbose, body);
+            //Log(Severity.Verbose, "");
 
-#warning the following code should be improved (is partially caused by the use of JSON instead of XML).
+            //#warning the following code should be improved (is partially caused by the use of JSON instead of XML).
 
             // Flow:
             // 1a) If we use a: as Authorization value on the /start/ call (and do not login),
@@ -490,72 +609,72 @@
             // 2b) This Authorization value we use for /start/ and replace it inside success() with the 'authToken' value for subsequent calls.
             // 3a) The 'token' value from 2a) can also be used directly for a start() call.
 
-            //! /HEALTH/
-            //
-            if (url.EndsWith("/health"))
-            {
-                Log(Severity.Information, "Health= {0}", body);
-            }
+            ////! /HEALTH/
+            ////
+            //if (url.EndsWith("/health"))
+            //{
+            //    Log(Severity.Information, "Health= {0}", body);
+            //}
 
             //! /LOGIN/
             //
-            if (url.EndsWith("/login") && jsonToken.IsMatch(body))
-            {
-                settings.UserToken = jsonToken.Match(body).Groups[1].Value;
-                if (settings.UserToken.StartsWith("Bearer "))
-                {
-                    settings.UserToken.Remove(0, "Bearer ".Length);
-                }
-                Log(Severity.Information, "Token= {0}", settings.UserToken);
+            //if (url.EndsWith("/login") && jsonToken.IsMatch(body))
+            //{
+            //    settings.UserToken = jsonToken.Match(body).Groups[1].Value;
+            //    if (settings.UserToken.StartsWith("Bearer "))
+            //    {
+            //        settings.UserToken.Remove(0, "Bearer ".Length);
+            //    }
+            //    Log(Severity.Information, "Token= {0}", settings.UserToken);
 
-                Connected = true;
-            }
+            //    Connected = true;
+            //}
 
             //! /START/
             //
-            if (url.EndsWith(String.Format("/start/{0}", (Settings as TrackerAssetSettings).TrackingCode)))
-            {
-                Log(Severity.Information, "");
+            //if (url.EndsWith(String.Format("/start/{0}", (Settings as TrackerAssetSettings).TrackingCode)))
+            //{
+            //    Log(Severity.Information, "");
 
-                // Extract AuthToken.
-                //
-                if (jsonAuthToken.IsMatch(body))
-                {
-                    settings.UserToken = jsonAuthToken.Match(body).Groups[1].Value;
-                    if (settings.UserToken.StartsWith("Bearer "))
-                    {
-                        settings.UserToken = settings.UserToken = settings.UserToken.Remove(0, "Bearer ".Length);
-                    }
-                    Log(Severity.Information, "AuthToken= {0}", settings.UserToken);
+            //    // Extract AuthToken.
+            //    //
+            //    if (jsonAuthToken.IsMatch(body))
+            //    {
+            //        settings.UserToken = jsonAuthToken.Match(body).Groups[1].Value;
+            //        if (settings.UserToken.StartsWith("Bearer "))
+            //        {
+            //            settings.UserToken = settings.UserToken = settings.UserToken.Remove(0, "Bearer ".Length);
+            //        }
+            //        Log(Severity.Information, "AuthToken= {0}", settings.UserToken);
 
-                    Connected = true;
-                }
+            //        Connected = true;
+            //    }
 
-                // Extract AuthToken.
-                //
-                if (jsonObjectId.IsMatch(body))
-                {
-                    ObjectId = jsonObjectId.Match(body).Groups[1].Value;
+            //    // Extract AuthToken.
+            //    //
+            //    if (jsonObjectId.IsMatch(body))
+            //    {
+            //        ObjectId = jsonObjectId.Match(body).Groups[1].Value;
 
-                    if (!ObjectId.EndsWith("/"))
-                    {
-                        ObjectId += "/";
-                    }
+            //        if (!ObjectId.EndsWith("/"))
+            //        {
+            //            ObjectId += "/";
+            //        }
 
-                    Log(Severity.Information, "ObjectId= {0}", ObjectId);
-                }
+            //        Log(Severity.Information, "ObjectId= {0}", ObjectId);
+            //    }
 
-                // Extract Actor Json Object.
-                //
-                if (jsonActor.IsMatch(body))
-                {
-                    ActorObject = jsonActor.Match(body).Groups[1].Value;
+            //    // Extract Actor Json Object.
+            //    //
+            //    if (jsonActor.IsMatch(body))
+            //    {
+            //        ActorObject = jsonActor.Match(body).Groups[1].Value;
 
-                    Log(Severity.Information, "Actor= {0}", ActorObject);
+            //        Log(Severity.Information, "Actor= {0}", ActorObject);
 
-                    Active = true;
-                }
-            }
+            //        Active = true;
+            //    }
+            //}
 
             if (url.EndsWith("/track"))
             {
@@ -690,6 +809,79 @@
         }
 
         /// <summary>
+        /// Issue a HTTP Webrequest.
+        /// </summary>
+        ///
+        /// <param name="path">   Full pathname of the file. </param>
+        /// <param name="method"> The method. </param>
+        ///
+        /// <returns>
+        /// true if it succeeds, false if it fails.
+        /// </returns>
+        private RequestResponse IssueRequest2(string path, string method)
+        {
+            return IssueRequest2(path, method, new Dictionary<string, string>(), String.Empty);
+        }
+
+        /// <summary>
+        /// Issue a HTTP Webrequest.
+        /// </summary>
+        ///
+        /// <param name="path">    Full pathname of the file. </param>
+        /// <param name="method">  The method. </param>
+        /// <param name="headers"> The headers. </param>
+        /// <param name="body">    The body. </param>
+        ///
+        /// <returns>
+        /// true if it succeeds, false if it fails.
+        /// </returns>
+        private RequestResponse IssueRequest2(string path, string method, Dictionary<string, string> headers, string body)
+        {
+            return IssueRequest2(path, method, headers, body, settings.Port);
+        }
+
+        /// <summary>
+        /// Query if this object issue request 2.
+        /// </summary>
+        ///
+        /// <param name="path">    Full pathname of the file. </param>
+        /// <param name="method">  The method. </param>
+        /// <param name="headers"> The headers. </param>
+        /// <param name="body">    The body. </param>
+        /// <param name="port">    The port. </param>
+        ///
+        /// <returns>
+        /// true if it succeeds, false if it fails.
+        /// </returns>
+        private RequestResponse IssueRequest2(string path, string method, Dictionary<string, string> headers, string body, Int32 port)
+        {
+            IWebServiceRequest2 ds = getInterface<IWebServiceRequest2>();
+
+            RequestResponse response = new RequestResponse();
+
+            if (ds != null)
+            {
+                ds.WebServiceRequest(
+                   new RequestSetttings
+                   {
+                       method = method,
+                       uri = new Uri(string.Format("http{0}://{1}{2}{3}/{4}",
+                                   settings.Secure ? "s" : String.Empty,
+                                   settings.Host,
+                                   port == 80 ? String.Empty : String.Format(":{0}", port),
+                                   String.IsNullOrEmpty(settings.BasePath.TrimEnd('/')) ? "" : settings.BasePath.TrimEnd('/'),
+                                   path.TrimStart('/')
+                                   )),
+                       requestHeaders = headers,
+                       //! allowedResponsCodes,     // default is ok
+                       body = body, // or method.Equals("GET")?string.Empty:body
+                   }, out response);
+            }
+
+            return response;
+        }
+
+        /// <summary>
         /// Process the queue.
         /// </summary>
         private void ProcessQueue()
@@ -769,8 +961,21 @@
 
                         Log(Severity.Information, "\r\n" + data);
 
-                        IssueRequest("proxy/gleaner/collector/track",
-                            "POST", headers, data);
+                        RequestResponse response = IssueRequest2("proxy/gleaner/collector/track",
+                                "POST", headers, data);
+
+                        if (response.ResultAllowed)
+                        {
+                            Log(Severity.Information, "Track= {0}", response.body);
+                        }
+                        else
+                        {
+                            Log(Severity.Error, "Request Error: {0}-{1}", response.responseCode, response.responsMessage);
+
+                            Active = false;
+                            Connected = false;
+                        }
+
                         break;
                 }
             }

@@ -660,7 +660,7 @@
                 Uri uri = new Uri(string.Format("http{0}://{1}{2}{3}/{4}",
                     settings.Secure ? "s" : String.Empty,
                     settings.Host,
-                    settings.Port == 80 ? String.Empty : String.Format(":{0}", port),
+                    port == 80 ? String.Empty : String.Format(":{0}", port),
                     String.IsNullOrEmpty(settings.BasePath.TrimEnd('/')) ? "" : settings.BasePath.TrimEnd('/'),
                     path.TrimStart('/')));
 

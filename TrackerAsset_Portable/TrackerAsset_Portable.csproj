@@ -51,7 +51,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Visual Studio 2013\Projects\asset-proof-of-concept-demo_CSharp\RageAssetManager_Portable\RageAssetManager - Portable.csproj">
+    <ProjectReference Include="..\..\AssetManager\RageAssetManager_Portable\RageAssetManager - Portable.csproj">
       <Project>{7f2712c1-575c-4883-88aa-e5b31070354f}</Project>
       <Name>RageAssetManager - Portable</Name>
     </ProjectReference>

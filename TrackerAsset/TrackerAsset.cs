@@ -1,6 +1,4 @@
-﻿//#define ASYNC_INTERFACE
-
-/*
+﻿/*
  * Copyright 2016 Open University of the Netherlands
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+//#define ASYNC_INTERFACE
+
 namespace AssetPackage
 {
     using System;
@@ -332,7 +333,7 @@ namespace AssetPackage
         /// </returns>
         public Boolean CheckHealth()
         {
-            RequestResponse response = IssueRequest2("health", "GET");
+            RequestResponse response = IssueRequest("health", "GET");
 
             if (response.ResultAllowed)
             {
@@ -351,6 +352,7 @@ namespace AssetPackage
             return response.ResultAllowed;
         }
 
+#if ASYNC_INTERFACE
         /// <summary>
         /// Errors.
         /// </summary>
@@ -363,6 +365,7 @@ namespace AssetPackage
 
             //Connected = false;
         }
+#endif
 
         /// <summary>
         /// Flushes the queue.
@@ -400,7 +403,7 @@ namespace AssetPackage
             headers.Add("Content-Type", "application/json");
             headers.Add("Accept", "application/json");
 
-            RequestResponse response = IssueRequest2("login", "POST", headers,
+            RequestResponse response = IssueRequest("login", "POST", headers,
                 String.Format("{{\r\n \"username\": \"{0}\",\r\n \"password\": \"{1}\"\r\n}}",
                 username, password));
 
@@ -469,7 +472,7 @@ namespace AssetPackage
                     //! processing. 
                     headers["Authorization"] = String.Format("Bearer {0}", settings.UserToken);
 
-                    RequestResponse response = IssueRequest2(String.Format("proxy/gleaner/collector/start/{0}", settings.TrackingCode), "POST", headers, String.Empty);
+                    RequestResponse response = IssueRequest(String.Format("proxy/gleaner/collector/start/{0}", settings.TrackingCode), "POST", headers, String.Empty);
 
                     if (response.ResultAllowed)
                     {
@@ -538,6 +541,7 @@ namespace AssetPackage
             }
         }
 
+#if ASYNC_INTERFACE
         /// <summary>
         /// Success.
         /// </summary>
@@ -645,6 +649,7 @@ namespace AssetPackage
 
             Active = !(String.IsNullOrEmpty(ActorObject) || String.IsNullOrEmpty(ObjectId));
         }
+#endif
 
         /// <summary>
         /// Adds the given value to the Queue.
@@ -894,7 +899,7 @@ namespace AssetPackage
 
                         Log(Severity.Information, "\r\n" + data);
 
-                        RequestResponse response = IssueRequest2("proxy/gleaner/collector/track",
+                        RequestResponse response = IssueRequest("proxy/gleaner/collector/track",
                                 "POST", headers, data);
 
                         if (response.ResultAllowed)

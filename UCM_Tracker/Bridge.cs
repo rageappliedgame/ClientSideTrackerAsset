@@ -16,7 +16,14 @@
  * limitations under the License.
  */
 
+//! The following define is used to switch between async/await inside the bridge or just plain calls.
+//! In this second case the programmer can wrap calls like health, login and flush into a single method and call it async as a whole.
 //#define ASYNC
+// 
+//! The following define is used to add  IWebServiceREquestAsync (UCM-Tracker/Unity3D style async call with a callback method). 
+//! This method of Causes issues when login is followed directly by some logging and a flush. The callback of login overwrites info 
+//! used by Flush and Flush Does a 2nd Login if the first did not return. This results in possibly two different logins/sessions escpecially when using anonymous login. 
+//#define ASYNC_INTERFACE
 
 namespace UCM_Tracker
 {
@@ -33,7 +40,10 @@ namespace UCM_Tracker
     /// <summary>
     /// A bridge.
     /// </summary>
-    public class Bridge : IBridge, IDataStorage, IWebServiceRequest, ILog, IWebServiceRequest
+    public class Bridge : IBridge, IDataStorage, IWebServiceRequest, ILog
+#if ASYNC_INTERFACE
+        , IWebServiceRequestAsync
+#endif
     {
         readonly String StorageDir = String.Format(@".{0}DataStorage", Path.DirectorySeparatorChar);
 
@@ -130,6 +140,7 @@ namespace UCM_Tracker
 
         #endregion
 
+#if ASYNC_INTERFACE
         #region WebServiceRequestAsync Members
 
 #if ASYNC
@@ -270,6 +281,7 @@ namespace UCM_Tracker
         }
 
         #endregion WebServiceRequestAsync Members
+#endif
 
         #region ILog Members
 
@@ -452,6 +464,6 @@ namespace UCM_Tracker
             return result;
         }
 
-        #endregion IWebServiceRequest2 Members
+        #endregion IWebServiceRequest Members
     }
 }

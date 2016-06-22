@@ -1,4 +1,6 @@
-﻿/*
+﻿//#define ASYNC_INTERFACE
+
+/*
  * Copyright 2016 Open University of the Netherlands
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +42,7 @@ namespace AssetPackage
     /// <item><term>TODO</term><desciption> - Add context to IWebServiceRequest (so we know what TrackEvents to remove in Success or re-add in Error).</desciption></item>  
     /// </list>
     /// </summary>
-    public class TrackerAsset : BaseAsset, IWebServiceResponse
+    public class TrackerAsset : BaseAsset, IWebServiceResponseAsync
     {
         #region Fields
 
@@ -350,49 +352,6 @@ namespace AssetPackage
         }
 
         /// <summary>
-        /// Player selected an option in a presented choice
-        /// </summary>
-        /// <param name="choiceId">Choice identifier.</param>
-        /// <param name="optionId">Option identifier.</param>
-        public void Choice(string choiceId, string optionId)
-        {
-            Trace(new TrackerEvent()
-            {
-                Event = TrackerEvent.CHOICE,
-                Target = choiceId,
-                Value = optionId
-            });
-        }
-
-        /// <summary>
-        /// Clicks.
-        /// </summary>
-        ///
-        /// <param name="x"> The x coordinate. </param>
-        /// <param name="y"> The y coordinate. </param>
-        public void Click(float x, float y)
-        {
-            Click(x, y, String.Empty);
-        }
-
-        /// <summary>
-        /// Clicks.
-        /// </summary>
-        ///
-        /// <param name="x">      The x coordinate. </param>
-        /// <param name="y">      The y coordinate. </param>
-        /// <param name="target"> Target for the. </param>
-        public void Click(float x, float y, string target)
-        {
-            Trace(new TrackerEvent()
-            {
-                Event = TrackerEvent.CLICK,
-                Target = target,
-                Value = String.Format("{0}x{1}", x, y)
-            });
-        }
-
-        /// <summary>
         /// Errors.
         /// </summary>
         ///
@@ -467,20 +426,6 @@ namespace AssetPackage
             }
 
             return Connected;
-        }
-
-        /// <summary>
-        /// Screens.
-        /// </summary>
-        ///
-        /// <param name="screenId"> Identifier for the screen. </param>
-        public void Screen(string screenId)
-        {
-            Trace(new TrackerEvent()
-            {
-                Event = TrackerEvent.SCREEN,
-                Target = screenId
-            });
         }
 
         /// <summary>
@@ -712,35 +657,6 @@ namespace AssetPackage
         }
 
         /// <summary>
-        /// A meaningful variable was updated in the game.
-        /// </summary>
-        /// <param name="varName">Variable name.</param>
-        /// <param name="value">New value for the variable.</param>
-        public void Var(string varName, System.Object value)
-        {
-            Trace(new TrackerEvent()
-            {
-                Event = TrackerEvent.VAR,
-                Target = varName,
-                Value = value
-            });
-        }
-
-        /// <summary>
-        /// Zones.
-        /// </summary>
-        ///
-        /// <param name="zoneId"> Identifier for the zone. </param>
-        public void Zone(string zoneId)
-        {
-            Trace(new TrackerEvent()
-            {
-                Event = TrackerEvent.ZONE,
-                Target = zoneId
-            });
-        }
-
-        /// <summary>
         /// Issue a HTTP Webrequest.
         /// </summary>
         ///
@@ -750,9 +666,9 @@ namespace AssetPackage
         /// <returns>
         /// true if it succeeds, false if it fails.
         /// </returns>
-        private bool IssueRequest(string path, string method)
+        private bool IssueRequestAsync(string path, string method)
         {
-            return IssueRequest(path, method, new Dictionary<string, string>(), String.Empty);
+            return IssueRequestAsync(path, method, new Dictionary<string, string>(), String.Empty);
         }
 
         /// <summary>
@@ -767,9 +683,9 @@ namespace AssetPackage
         /// <returns>
         /// true if it succeeds, false if it fails.
         /// </returns>
-        private bool IssueRequest(string path, string method, Dictionary<string, string> headers, string body)
+        private bool IssueRequestAsync(string path, string method, Dictionary<string, string> headers, string body)
         {
-            return IssueRequest(path, method, headers, body, settings.Port);
+            return IssueRequestAsync(path, method, headers, body, settings.Port);
         }
 
         /// <summary>
@@ -785,9 +701,9 @@ namespace AssetPackage
         /// <returns>
         /// true if it succeeds, false if it fails.
         /// </returns>
-        private bool IssueRequest(string path, string method, Dictionary<string, string> headers, string body, Int32 port)
+        private bool IssueRequestAsync(string path, string method, Dictionary<string, string> headers, string body, Int32 port)
         {
-            IWebServiceRequest ds = getInterface<IWebServiceRequest>();
+            IWebServiceRequestAsync ds = getInterface<IWebServiceRequestAsync>();
 
             if (ds != null)
             {
@@ -812,7 +728,7 @@ namespace AssetPackage
                     Log(Severity.Verbose, body);
                 }
 
-                ds.WebServiceRequest(
+                ds.WebServiceRequestAsync(
                     method,
                     uri,
                     headers,
@@ -835,9 +751,9 @@ namespace AssetPackage
         /// <returns>
         /// true if it succeeds, false if it fails.
         /// </returns>
-        private RequestResponse IssueRequest2(string path, string method)
+        private RequestResponse IssueRequest(string path, string method)
         {
-            return IssueRequest2(path, method, new Dictionary<string, string>(), String.Empty);
+            return IssueRequest(path, method, new Dictionary<string, string>(), String.Empty);
         }
 
         /// <summary>
@@ -852,9 +768,9 @@ namespace AssetPackage
         /// <returns>
         /// true if it succeeds, false if it fails.
         /// </returns>
-        private RequestResponse IssueRequest2(string path, string method, Dictionary<string, string> headers, string body)
+        private RequestResponse IssueRequest(string path, string method, Dictionary<string, string> headers, string body = "")
         {
-            return IssueRequest2(path, method, headers, body, settings.Port);
+            return IssueRequest(path, method, headers, body, settings.Port);
         }
 
         /// <summary>
@@ -870,9 +786,9 @@ namespace AssetPackage
         /// <returns>
         /// true if it succeeds, false if it fails.
         /// </returns>
-        private RequestResponse IssueRequest2(string path, string method, Dictionary<string, string> headers, string body, Int32 port)
+        private RequestResponse IssueRequest(string path, string method, Dictionary<string, string> headers, string body, Int32 port)
         {
-            IWebServiceRequest2 ds = getInterface<IWebServiceRequest2>();
+            IWebServiceRequest ds = getInterface<IWebServiceRequest>();
 
             RequestResponse response = new RequestResponse();
 
@@ -890,7 +806,7 @@ namespace AssetPackage
                                    path.TrimStart('/')
                                    )),
                        requestHeaders = headers,
-                       //! allowedResponsCodes,     // default is ok
+                       //! allowedResponsCodes,     // TODO default is ok
                        body = body, // or method.Equals("GET")?string.Empty:body
                    }, out response);
             }

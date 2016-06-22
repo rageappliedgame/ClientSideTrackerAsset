@@ -33,7 +33,7 @@ namespace UCM_Tracker
     /// <summary>
     /// A bridge.
     /// </summary>
-    public class Bridge : IBridge, IDataStorage, IWebServiceRequest, ILog, IWebServiceRequest2
+    public class Bridge : IBridge, IDataStorage, IWebServiceRequest, ILog, IWebServiceRequest
     {
         readonly String StorageDir = String.Format(@".{0}DataStorage", Path.DirectorySeparatorChar);
 
@@ -130,7 +130,7 @@ namespace UCM_Tracker
 
         #endregion
 
-        #region IWebServiceRequest Members
+        #region WebServiceRequestAsync Members
 
 #if ASYNC
         /// <summary>
@@ -142,7 +142,7 @@ namespace UCM_Tracker
         /// <param name="headers">          The headers. </param>
         /// <param name="body">             The body. </param>
         /// <param name="notifyOnResponse"> The response. </param>
-        public async void WebServiceRequest(
+        public async void WebServiceRequestAsync(
             string method,
             Uri uri,
             Dictionary<string, string> headers,
@@ -158,12 +158,12 @@ namespace UCM_Tracker
         /// <param name="headers">          The headers. </param>
         /// <param name="body">             The body. </param>
         /// <param name="notifyOnResponse"> The response. </param>
-        public void WebServiceRequest(
+        public void WebServiceRequestAsync(
             string method,
             Uri uri,
             Dictionary<string, string> headers,
             string body,
-            IWebServiceResponse notifyOnResponse)
+            IWebServiceResponseAsync notifyOnResponse)
 #endif
         {
             try
@@ -269,7 +269,7 @@ namespace UCM_Tracker
             }
         }
 
-        #endregion IWebServiceRequest Members
+        #endregion WebServiceRequestAsync Members
 
         #region ILog Members
 
@@ -298,7 +298,7 @@ namespace UCM_Tracker
 
         #endregion ILog Members
 
-        #region IWebServiceRequest2 Members
+        #region IWebServiceRequest Members
 
         // See http://stackoverflow.com/questions/12224602/a-method-for-making-http-requests-on-unity-ios
         // for persistence.

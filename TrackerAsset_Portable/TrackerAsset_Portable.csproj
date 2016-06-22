@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>TrackerAsset_Portable</RootNamespace>
-    <AssemblyName>MyFirstAsset_Portable_Portable</AssemblyName>
+    <AssemblyName>TrackerAsset_Portable</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Profile7</TargetFrameworkProfile>
     <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -36,17 +36,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\TrackerAsset\TrackerAsset.cs">
-      <Link>MyFirstAsset.cs</Link>
+      <Link>TrackerAsset.cs</Link>
     </Compile>
     <Compile Include="..\TrackerAsset\TrackerAssetSettings.cs">
-      <Link>MyFirstAssetSettings.cs</Link>
+      <Link>TrackerAssetSettings.cs</Link>
     </Compile>
     <Compile Include="..\TrackerAsset\Properties\AssemblyInfo.cs">
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\MyFirstAsset\Resources\TrackerAsset.VersionAndDependencies.xml">
+    <Content Include="..\TrackerAsset\Resources\TrackerAsset.VersionAndDependencies.xml">
       <Link>Resources\TrackerAsset.VersionAndDependencies.xml</Link>
     </Content>
   </ItemGroup>

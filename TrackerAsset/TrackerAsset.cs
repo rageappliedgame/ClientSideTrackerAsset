@@ -32,18 +32,16 @@ namespace AssetPackage
     /// <item><term>TODO</term><desciption> - Add method to return the mime-type/content-type.</desciption></item>
     /// <item><term>TODO</term><desciption> - Add method to return the accept-type.</desciption></item>
     /// 
-    /// <item><term>TODO</term><desciption> - Find a solution for the Connect inside Flush (in UCM's Code).</desciption></item>
-    /// 
-    /// <item><term>TODO</term><desciption> - Check disk based storage (local).</desciption></item>
-    /// <item><term>TODO</term><desciption> - Serialize Queue for later submission.</desciption></item>
-    /// <item><term>TODO</term><desciption> - Check if ObjectRegEx works un Unity (does so in .NET 3.5).</desciption></item>
+    /// <item><term>TODO</term><desciption> - Check disk based/off-line storage (local).</desciption></item>
+    /// <item><term>TODO</term><desciption> - Serialize Queue for later submission (using queue.ToList()).</desciption></item>
     /// 
     /// <item><term>TODO</term><desciption> - Prevent csv/xml/json from net storage and xapi from local storage.</desciption></item>
-    /// 
-    /// <item><term>TODO</term><desciption> - Add context to IWebServiceRequest (so we know what TrackEvents to remove in Success or re-add in Error).</desciption></item>  
     /// </list>
     /// </summary>
-    public class TrackerAsset : BaseAsset, IWebServiceResponseAsync
+    public class TrackerAsset : BaseAsset
+#if ASYNC_INTERFACE
+        , IWebServiceResponseAsync
+#endif
     {
         #region Fields
 

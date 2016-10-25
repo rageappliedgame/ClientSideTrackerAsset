@@ -659,6 +659,8 @@ namespace AssetPackage
             queue.Enqueue(value);
         }
 
+#if ASYNC_INTERFACE
+
         /// <summary>
         /// Issue a HTTP Webrequest.
         /// </summary>
@@ -743,6 +745,8 @@ namespace AssetPackage
 
             return false;
         }
+
+        #endif
 
         /// <summary>
         /// Issue a HTTP Webrequest.
